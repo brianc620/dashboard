@@ -613,13 +613,15 @@ async function fetchStock(symbol, elId){
     const recent = data.slice(-20);
     const closes = recent.map(d => d.close);
     const dailyRets = closes.map((c,i) => i === 0 ? 0 : ((c - closes[i-1]) / closes[i-1]) * 100);
-    const maxAbs = Math.max(...dailyRets.map(r => Math.abs(r)), 0.1);
+    // reverse so most recent day is on the left
+    const dispRets = dailyRets.slice(1).reverse();
+    const maxAbs = Math.max(...dispRets.map(r => Math.abs(r)), 0.1);
     let bars = '';
-    for(let i = 0; i < closes.length; i++){
-      const pct = dailyRets[i];
+    for(let i = 0; i < dispRets.length; i++){
+      const pct = dispRets[i];
       const cls = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
       const sign = pct > 0 ? '+' : '';
-      const pctLabel = i === 0 ? '—' : `${sign}${pct.toFixed(1)}`;
+      const pctLabel = `${sign}${pct.toFixed(1)}`;
       const h = (Math.abs(pct) / maxAbs) * 20;
       let barStyle;
       if(pct >= 0){
@@ -627,9 +629,8 @@ async function fetchStock(symbol, elId){
       } else {
         barStyle = `top:50%;height:${h}px;background:var(--red);border-radius:0 0 2px 2px;`;
       }
-      const daysBack = closes.length - 1 - i;
-      const dateLabel = daysBack === 0 ? 'T' : `T-${daysBack}`;
-      bars += `<div class="spark-col"><div class="spark-pct ${i===0?'flat':cls}">${pctLabel}</div><div class="spark-area"><div class="bar" style="${barStyle}"></div></div><div class="spark-date">${dateLabel}</div></div>`;
+      const dateLabel = i === 0 ? 'T' : `T-${i}`;
+      bars += `<div class="spark-col"><div class="spark-pct ${cls}">${pctLabel}</div><div class="spark-area"><div class="bar" style="${barStyle}"></div></div><div class="spark-date">${dateLabel}</div></div>`;
     }
 
     el.innerHTML = `
