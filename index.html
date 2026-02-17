@@ -129,29 +129,36 @@
   .weather-details{display:flex;gap:1.4rem;font-size:.82rem;color:var(--text-dim)}
   .weather-details span{display:flex;align-items:center;gap:.3rem}
 
-  /* ── art ── */
-  .art-inner{display:flex;gap:1.4rem;align-items:flex-start;flex-wrap:wrap}
-  .art-img-wrap{
-    width:clamp(140px,30%,240px);
-    aspect-ratio:3/4;
+  /* ── gallery showcase ── */
+  .gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+  @media(max-width:700px){.gallery-grid{grid-template-columns:1fr}}
+  .gallery-item{
+    background:rgba(255,255,255,.02);
+    border:1px solid var(--border);
     border-radius:.7rem;
     overflow:hidden;
-    background:#1a1c28;
-    flex-shrink:0;
-    position:relative;
+    transition:border-color .25s,transform .25s;
   }
-  .art-img-wrap img{
-    width:100%;height:100%;
-    object-fit:cover;
-    display:block;
-    opacity:0;
-    transition:opacity .5s;
+  .gallery-item:hover{border-color:var(--border-hi);transform:translateY(-3px)}
+  .gallery-item img{
+    width:100%;aspect-ratio:4/3;object-fit:cover;display:block;
+    opacity:0;transition:opacity .5s;
   }
-  .art-img-wrap img.loaded{opacity:1}
-  .art-info{flex:1;min-width:180px}
-  .art-title{font-size:1.1rem;font-weight:600;margin-bottom:.3rem}
-  .art-artist{font-size:.88rem;color:var(--text-dim);margin-bottom:.9rem}
-  .art-btn{
+  .gallery-item img.loaded{opacity:1}
+  .gallery-item .info{padding:.8rem}
+  .gallery-item .g-title{font-size:.92rem;font-weight:600;margin-bottom:.2rem}
+  .gallery-item .g-artist{font-size:.78rem;color:var(--text-dim);margin-bottom:.15rem}
+  .gallery-item .g-meta{font-size:.68rem;color:var(--text-dim);margin-bottom:.5rem}
+  .gallery-item .g-link{
+    display:inline-block;font-size:.7rem;font-weight:600;
+    color:var(--accent);text-decoration:none;
+    transition:opacity .2s;
+  }
+  .gallery-item .g-link:hover{opacity:.75}
+  .gallery-refresh{
+    display:flex;justify-content:center;margin-top:.9rem;
+  }
+  .gallery-refresh button{
     background:rgba(108,114,255,.12);
     border:1px solid rgba(108,114,255,.25);
     color:var(--accent);
@@ -161,7 +168,7 @@
     cursor:pointer;
     transition:background .2s,transform .15s;
   }
-  .art-btn:hover{background:rgba(108,114,255,.22);transform:scale(1.03)}
+  .gallery-refresh button:hover{background:rgba(108,114,255,.22);transform:scale(1.03)}
 
   /* ── stocks ── */
   .stock-price{font-size:1.7rem;font-weight:700;margin-bottom:.8rem;letter-spacing:-.02em}
@@ -307,16 +314,14 @@
     <div id="news-nba-content"><div class="skeleton" style="width:90%;margin-bottom:.6rem"></div><div class="skeleton" style="width:75%;margin-bottom:.6rem"></div><div class="skeleton" style="width:85%"></div></div>
   </div>
 
-  <!-- Art -->
-  <div class="card span" id="art-card">
-    <div class="card-label"><span class="icon">&#9734;</span> Art of the Moment</div>
-    <div id="art-content">
-      <div class="art-inner">
-        <div class="art-img-wrap"><div class="skeleton" style="width:100%;height:100%;border-radius:.7rem"></div></div>
-        <div class="art-info">
-          <div class="skeleton" style="width:70%;margin-bottom:.5rem"></div>
-          <div class="skeleton" style="width:50%"></div>
-        </div>
+  <!-- SmithKlein Gallery -->
+  <div class="card span" id="gallery-card">
+    <div class="card-label"><span class="icon">&#9734;</span> SmithKlein Gallery Showcase</div>
+    <div id="gallery-content">
+      <div class="gallery-grid">
+        <div class="gallery-item"><div class="skeleton" style="width:100%;aspect-ratio:4/3"></div><div class="info"><div class="skeleton" style="width:70%;margin-bottom:.4rem"></div><div class="skeleton" style="width:50%"></div></div></div>
+        <div class="gallery-item"><div class="skeleton" style="width:100%;aspect-ratio:4/3"></div><div class="info"><div class="skeleton" style="width:70%;margin-bottom:.4rem"></div><div class="skeleton" style="width:50%"></div></div></div>
+        <div class="gallery-item"><div class="skeleton" style="width:100%;aspect-ratio:4/3"></div><div class="info"><div class="skeleton" style="width:70%;margin-bottom:.4rem"></div><div class="skeleton" style="width:50%"></div></div></div>
       </div>
     </div>
   </div>
@@ -328,7 +333,7 @@
    CONFIG
    ═══════════════════════════════════════════ */
 const WEATHER_INTERVAL = 10 * 60_000;   // 10 min
-const ART_INTERVAL     = 5  * 60_000;   // 5 min
+const GALLERY_INTERVAL     = 5  * 60_000;   // 5 min
 const STOCK_INTERVAL   = 15 * 60_000;   // 15 min (no key limits now)
 const NEWS_INTERVAL    = 15 * 60_000;   // 15 min
 
@@ -477,37 +482,51 @@ async function fetchVailSnow(){
 }
 
 /* ═══════════════════════════════════════════
-   ART  (Art Institute of Chicago)
+   GALLERY  (SmithKlein — reads paintings.json)
    ═══════════════════════════════════════════ */
-async function fetchArt(){
-  const el = document.getElementById('art-content');
+let galleryData = null; // cache after first load
+
+async function fetchGallery(){
+  const el = document.getElementById('gallery-content');
   try{
-    // pick a random page from 1–200, grab 12 results, find one with an image
-    const page = Math.floor(Math.random()*200)+1;
-    const url = `https://api.artic.edu/api/v1/artworks?page=${page}&limit=12`
-      + `&fields=id,title,artist_display,image_id,date_display,medium_display`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const iiif = data.config.iiif_url;
-    const withImg = data.data.filter(a => a.image_id);
-    if(!withImg.length){ fetchArt(); return; }       // retry on miss
-    const art = withImg[Math.floor(Math.random()*withImg.length)];
-    const imgUrl = `${iiif}/${art.image_id}/full/600,/0/default.jpg`;
+    // load JSON once, then reuse
+    if(!galleryData){
+      const res = await fetch('paintings.json');
+      galleryData = await res.json();
+    }
+
+    // flatten all paintings, attach artist name, filter out show/gallery pages
+    const all = [];
+    for(const artist of galleryData){
+      for(const p of artist.paintings){
+        if(!p.medium || p.title.toUpperCase().includes('SMITHKLEIN GALLERY')) continue;
+        all.push({...p, artist: artist.artist, artist_url: artist.artist_url});
+      }
+    }
+
+    // pick 3 random, non-repeating
+    const shuffled = all.sort(() => Math.random() - 0.5);
+    const picks = shuffled.slice(0, 3);
 
     el.innerHTML = `
-      <div class="art-inner">
-        <div class="art-img-wrap">
-          <img src="${imgUrl}" alt="${art.title}" onload="this.classList.add('loaded')">
-        </div>
-        <div class="art-info">
-          <div class="art-title">${art.title}</div>
-          <div class="art-artist">${art.artist_display || 'Unknown artist'}${art.date_display ? ' · '+art.date_display : ''}</div>
-          ${art.medium_display ? `<div class="art-artist" style="margin-bottom:.6rem;font-size:.78rem">${art.medium_display}</div>` : ''}
-          <button class="art-btn" onclick="fetchArt()">&#8635; New artwork</button>
-        </div>
+      <div class="gallery-grid">
+        ${picks.map(p => `
+          <div class="gallery-item">
+            <img src="${p.image_url}" alt="${p.title}" onload="this.classList.add('loaded')">
+            <div class="info">
+              <div class="g-title">${p.title}</div>
+              <div class="g-artist">${p.artist}</div>
+              <div class="g-meta">${p.medium}${p.dimensions ? ' · ' + p.dimensions : ''}</div>
+              <a class="g-link" href="${p.page_url}" target="_blank" rel="noopener">View on SmithKlein &rarr;</a>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="gallery-refresh">
+        <button onclick="fetchGallery()">&#8635; Show different paintings</button>
       </div>`;
   }catch(e){
-    el.innerHTML = `<div class="error-msg">Art unavailable — ${e.message}</div>`;
+    el.innerHTML = `<div class="error-msg">Gallery unavailable — ${e.message}</div>`;
   }
 }
 
@@ -720,7 +739,7 @@ async function init(){
   updateTimestamp();
   fetchWeather();
   fetchVailSnow();
-  fetchArt();
+  fetchGallery();
   fetchStocks();
   fetchNews();
 }
@@ -728,7 +747,7 @@ async function init(){
 init();
 setInterval(()=>{ fetchWeather();  updateTimestamp(); }, WEATHER_INTERVAL);
 setInterval(()=>{ fetchVailSnow(); updateTimestamp(); }, SNOW_INTERVAL);
-setInterval(()=>{ fetchArt();      updateTimestamp(); }, ART_INTERVAL);
+setInterval(()=>{ fetchGallery();      updateTimestamp(); }, GALLERY_INTERVAL);
 setInterval(()=>{ fetchStocks();   updateTimestamp(); }, STOCK_INTERVAL);
 setInterval(()=>{ fetchNews();     updateTimestamp(); }, NEWS_INTERVAL);
 
