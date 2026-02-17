@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Dashboard</title>
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  /* ── Theme: Default ── */
+  :root, [data-theme="default"]{
+    --bg:       #0b0d14;
+    --surface:  #13151e;
+    --border:   #1e2230;
+    --border-hi:#2a2f42;
+    --text:     #e4e6ef;
+    --text-dim: #6b7194;
+    --accent:   #6c72ff;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --radius:   1rem;
+    --font:     'Segoe UI',system-ui,-apple-system,sans-serif;
+    --card-blur:0px;
+    --body-bg-image:none;
+  }
+
+  /* ── Theme: Clean Light ── */
+  [data-theme="light"]{
+    --bg:       #f5f5f7;
+    --surface:  #ffffff;
+    --border:   #e2e2e6;
+    --border-hi:#ccccd0;
+    --text:     #1d1d1f;
+    --text-dim: #86868b;
+    --accent:   #0071e3;
+    --green:    #1a8a3f;
+    --red:      #d12e2e;
+    --radius:   1rem;
+    --font:     'Segoe UI',system-ui,sans-serif;
+    --card-blur:0px;
+    --body-bg-image:none;
+  }
+
+  body{
+    min-height:100vh;
+    background:var(--bg);
+    background-image:var(--body-bg-image);
+    color:var(--text);
+    font-family:var(--font);
+    padding:1.5rem;
+    line-height:1.5;
+    transition:background .4s,color .3s;
+  }
+
+  /* ── header ── */
+  header{
+    text-align:center;margin-bottom:2rem;
+  }
+  header h1{
+    font-size:clamp(1.4rem,3.5vw,2rem);font-weight:700;
+    letter-spacing:-.02em;
+    margin-bottom:.25rem;
+  }
+  header h1 span{
+    background:linear-gradient(135deg,var(--accent),#00b4ff);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .updated{font-size:.8rem;color:var(--text-dim)}
+
+  /* ── theme picker ── */
+  .theme-bar{
+    display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;
+    margin-top:.7rem;
+  }
+  .theme-btn{
+    border:2px solid var(--border);
+    border-radius:.5rem;
+    padding:.3rem .7rem;
+    font-size:.68rem;font-weight:600;
+    letter-spacing:.04em;
+    cursor:pointer;
+    background:var(--surface);
+    color:var(--text-dim);
+    transition:border-color .2s,color .2s,transform .15s;
+  }
+  .theme-btn:hover{border-color:var(--accent);color:var(--text);transform:scale(1.04)}
+  .theme-btn.active{border-color:var(--accent);color:var(--accent)}
+
+  /* ── grid ── */
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1.25rem;
+    max-width:1000px;
+    margin:0 auto;
+  }
+  @media(max-width:700px){.grid{grid-template-columns:1fr}}
+
+  /* ── card ── */
+  .card{
+    background:var(--surface);
+    backdrop-filter:blur(var(--card-blur));
+    -webkit-backdrop-filter:blur(var(--card-blur));
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:1.4rem;
+    transition:background .4s,border-color .25s,box-shadow .25s,border-radius .3s;
+  }
+  .card:hover{
+    border-color:var(--border-hi);
+    box-shadow:0 4px 24px rgba(0,0,0,.35);
+  }
+  .card.span{grid-column:1/-1}
+
+  .card-label{
+    font-size:.7rem;font-weight:600;
+    text-transform:uppercase;letter-spacing:.12em;
+    color:var(--text-dim);margin-bottom:.9rem;
+    display:flex;align-items:center;gap:.45rem;
+  }
+  .card-label .icon{font-size:.95rem}
+
+  /* ── weather ── */
+  .weather-main{display:flex;align-items:center;gap:1rem;margin-bottom:.7rem}
+  .weather-icon{font-size:2.6rem;line-height:1}
+  .weather-temp{font-size:2.4rem;font-weight:700;letter-spacing:-.03em}
+  .weather-desc{font-size:.9rem;color:var(--text-dim);margin-bottom:.7rem}
+  .weather-details{display:flex;gap:1.4rem;font-size:.82rem;color:var(--text-dim)}
+  .weather-details span{display:flex;align-items:center;gap:.3rem}
+
+  /* ── art ── */
+  .art-inner{display:flex;gap:1.4rem;align-items:flex-start;flex-wrap:wrap}
+  .art-img-wrap{
+    width:clamp(140px,30%,240px);
+    aspect-ratio:3/4;
+    border-radius:.7rem;
+    overflow:hidden;
+    background:#1a1c28;
+    flex-shrink:0;
+    position:relative;
+  }
+  .art-img-wrap img{
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
+    opacity:0;
+    transition:opacity .5s;
+  }
+  .art-img-wrap img.loaded{opacity:1}
+  .art-info{flex:1;min-width:180px}
+  .art-title{font-size:1.1rem;font-weight:600;margin-bottom:.3rem}
+  .art-artist{font-size:.88rem;color:var(--text-dim);margin-bottom:.9rem}
+  .art-btn{
+    background:rgba(108,114,255,.12);
+    border:1px solid rgba(108,114,255,.25);
+    color:var(--accent);
+    font-size:.78rem;font-weight:600;
+    padding:.4rem .9rem;
+    border-radius:.5rem;
+    cursor:pointer;
+    transition:background .2s,transform .15s;
+  }
+  .art-btn:hover{background:rgba(108,114,255,.22);transform:scale(1.03)}
+
+  /* ── stocks ── */
+  .stock-price{font-size:1.7rem;font-weight:700;margin-bottom:.8rem;letter-spacing:-.02em}
+  .stock-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.5rem}
+  .stock-cell{text-align:center}
+  .stock-cell .period{font-size:.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.2rem}
+  .stock-cell .ret{font-size:.95rem;font-weight:700;border-radius:.4rem;padding:.25rem .1rem}
+  .stock-cell .ret.up{color:var(--green);background:rgba(34,197,94,.08)}
+  .stock-cell .ret.down{color:var(--red);background:rgba(239,68,68,.08)}
+  .stock-cell .ret.flat{color:var(--text-dim)}
+
+  /* ── loading / error states ── */
+  .skeleton{
+    background:linear-gradient(90deg,#1a1c28 25%,#222430 50%,#1a1c28 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.5s infinite;
+    border-radius:.35rem;
+    height:1em;
+    width:60%;
+  }
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .error-msg{color:var(--red);font-size:.82rem}
+
+  /* ── mini bar chart (sparkline) ── */
+  .spark{display:flex;gap:2px;margin-top:.3rem}
+  .spark-col{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
+  .spark-pct{font-size:.5rem;font-weight:600;white-space:nowrap;margin-bottom:2px;line-height:1}
+  .spark-pct.up{color:var(--green)}.spark-pct.down{color:var(--red)}.spark-pct.flat{color:var(--text-dim)}
+  .spark-area{height:44px;position:relative;width:100%}
+  .spark-area::after{
+    content:'';position:absolute;left:0;right:0;top:50%;
+    border-top:1px solid rgba(255,255,255,.1);pointer-events:none;
+  }
+  .spark-area .bar{position:absolute;left:0;right:0;transition:height .3s}
+  .spark-date{font-size:.45rem;color:var(--text-dim);white-space:nowrap;margin-top:2px;line-height:1}
+
+  /* ── snow report ── */
+  .snow-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media(max-width:500px){.snow-grid{grid-template-columns:1fr}}
+  .snow-section-label{
+    font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--text-dim);margin-bottom:.5rem;
+  }
+  .snow-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem}
+  .snow-stat{
+    text-align:center;padding:.55rem .3rem;
+    background:rgba(255,255,255,.03);border-radius:.5rem;
+    border:1px solid rgba(255,255,255,.04);
+  }
+  .snow-stat .val{font-size:1.3rem;font-weight:700;line-height:1.1}
+  .snow-stat .val.has-snow{color:#7dd3fc}
+  .snow-stat .lbl{font-size:.58rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:.2rem}
+  .snow-meta{
+    margin-top:.8rem;font-size:.72rem;color:var(--text-dim);
+    display:flex;flex-wrap:wrap;gap:.3rem 1.2rem;
+  }
+  .snow-meta strong{color:var(--text);font-weight:600}
+
+  /* ── news ── */
+  .news-list{list-style:none;display:flex;flex-direction:column;gap:.55rem}
+  .news-item a{
+    color:var(--text);
+    text-decoration:none;
+    font-size:.85rem;
+    line-height:1.35;
+    display:block;
+    padding:.5rem .65rem;
+    border-radius:.5rem;
+    background:rgba(255,255,255,.02);
+    border:1px solid transparent;
+    transition:background .2s,border-color .2s;
+  }
+  .news-item a:hover{
+    background:rgba(255,255,255,.05);
+    border-color:var(--border-hi);
+  }
+  .news-source{
+    font-size:.62rem;font-weight:600;
+    text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-dim);margin-top:.2rem;
+  }
+  .news-time{color:var(--accent);font-size:.62rem;margin-left:.5rem;letter-spacing:0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>Dashboard</span></h1>
+  <div class="updated">Last updated: <span id="last-updated">loading...</span> &middot; Auto-refreshes</div>
+  <div class="theme-bar" id="theme-bar">
+    <button class="theme-btn active" data-theme="default">Dark</button>
+    <button class="theme-btn" data-theme="light">Light</button>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- Weather: Boulder -->
+  <div class="card" id="weather-boulder">
+    <div class="card-label"><span class="icon">&#9729;</span> Boulder, CO</div>
+    <div id="wb-content"><div class="skeleton" style="width:80%;height:2.4rem;margin-bottom:.6rem"></div><div class="skeleton" style="width:50%"></div></div>
+  </div>
+
+  <!-- Weather: Vail -->
+  <div class="card" id="weather-vail">
+    <div class="card-label"><span class="icon">&#9968;</span> Vail, CO</div>
+    <div id="wv-content"><div class="skeleton" style="width:80%;height:2.4rem;margin-bottom:.6rem"></div><div class="skeleton" style="width:50%"></div></div>
+  </div>
+
+  <!-- Snow: Vail -->
+  <div class="card span" id="snow-vail">
+    <div class="card-label"><span class="icon">&#10052;</span> Vail Snow Report</div>
+    <div id="snow-content"><div class="skeleton" style="width:80%;margin-bottom:.6rem"></div><div class="skeleton" style="width:60%"></div></div>
+  </div>
+
+  <!-- Stock: SPY -->
+  <div class="card" id="stock-spy">
+    <div class="card-label"><span class="icon">&#9650;</span> SPY &mdash; S&amp;P 500 ETF</div>
+    <div id="spy-content"><div class="skeleton" style="width:40%;height:1.7rem;margin-bottom:.8rem"></div><div class="skeleton" style="width:100%"></div></div>
+  </div>
+
+  <!-- Stock: IGV -->
+  <div class="card" id="stock-igv">
+    <div class="card-label"><span class="icon">&#9650;</span> IGV &mdash; Software ETF</div>
+    <div id="igv-content"><div class="skeleton" style="width:40%;height:1.7rem;margin-bottom:.8rem"></div><div class="skeleton" style="width:100%"></div></div>
+  </div>
+
+  <!-- Delta: IGV vs SPY -->
+  <div class="card span" id="stock-delta">
+    <div class="card-label"><span class="icon">&#9878;</span> IGV vs SPY &mdash; Relative Performance</div>
+    <div id="delta-content"><div class="skeleton" style="width:100%"></div></div>
+  </div>
+
+  <!-- News: Top Stories -->
+  <div class="card" id="news-general">
+    <div class="card-label"><span class="icon">&#9783;</span> Top Stories</div>
+    <div id="news-general-content"><div class="skeleton" style="width:90%;margin-bottom:.6rem"></div><div class="skeleton" style="width:75%;margin-bottom:.6rem"></div><div class="skeleton" style="width:85%"></div></div>
+  </div>
+
+  <!-- News: NBA -->
+  <div class="card" id="news-nba">
+    <div class="card-label"><span class="icon">&#9917;</span> NBA News</div>
+    <div id="news-nba-content"><div class="skeleton" style="width:90%;margin-bottom:.6rem"></div><div class="skeleton" style="width:75%;margin-bottom:.6rem"></div><div class="skeleton" style="width:85%"></div></div>
+  </div>
+
+  <!-- Art -->
+  <div class="card span" id="art-card">
+    <div class="card-label"><span class="icon">&#9734;</span> Art of the Moment</div>
+    <div id="art-content">
+      <div class="art-inner">
+        <div class="art-img-wrap"><div class="skeleton" style="width:100%;height:100%;border-radius:.7rem"></div></div>
+        <div class="art-info">
+          <div class="skeleton" style="width:70%;margin-bottom:.5rem"></div>
+          <div class="skeleton" style="width:50%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONFIG
+   ═══════════════════════════════════════════ */
+const WEATHER_INTERVAL = 10 * 60_000;   // 10 min
+const ART_INTERVAL     = 5  * 60_000;   // 5 min
+const STOCK_INTERVAL   = 15 * 60_000;   // 15 min (no key limits now)
+const NEWS_INTERVAL    = 15 * 60_000;   // 15 min
+
+/* ═══════════════════════════════════════════
+   WEATHER  (Open-Meteo, no key needed)
+   ═══════════════════════════════════════════ */
+const WMO = {
+  0:['Clear','☀️'],1:['Mostly Clear','🌤️'],2:['Partly Cloudy','⛅'],3:['Overcast','☁️'],
+  45:['Fog','🌫️'],48:['Rime Fog','🌫️'],
+  51:['Light Drizzle','🌧️'],53:['Drizzle','🌧️'],55:['Heavy Drizzle','🌧️'],
+  56:['Freezing Drizzle','🌧️'],57:['Heavy Freezing Drizzle','🌧️'],
+  61:['Light Rain','🌧️'],63:['Rain','🌧️'],65:['Heavy Rain','🌧️'],
+  66:['Freezing Rain','🌧️'],67:['Heavy Freezing Rain','🌧️'],
+  71:['Light Snow','🌨️'],73:['Snow','🌨️'],75:['Heavy Snow','❄️'],
+  77:['Snow Grains','❄️'],
+  80:['Light Showers','🌦️'],81:['Showers','🌦️'],82:['Heavy Showers','🌦️'],
+  85:['Snow Showers','🌨️'],86:['Heavy Snow Showers','🌨️'],
+  95:['Thunderstorm','⛈️'],96:['Thunderstorm + Hail','⛈️'],99:['Severe Thunderstorm','⛈️'],
+};
+
+const LOCATIONS = [
+  {name:'Boulder, CO', lat:40.015,  lon:-105.2705, elId:'wb-content'},
+  {name:'Vail, CO',    lat:39.6403, lon:-106.3742, elId:'wv-content'},
+];
+
+async function fetchWeather(){
+  for(const loc of LOCATIONS){
+    try{
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}`
+        + `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature`
+        + `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FDenver`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const c = data.current;
+      const [desc, icon] = WMO[c.weather_code] || ['Unknown','🌡️'];
+      document.getElementById(loc.elId).innerHTML = `
+        <div class="weather-main">
+          <div class="weather-icon">${icon}</div>
+          <div class="weather-temp">${Math.round(c.temperature_2m)}°F</div>
+        </div>
+        <div class="weather-desc">${desc}</div>
+        <div class="weather-details">
+          <span>Feels ${Math.round(c.apparent_temperature)}°</span>
+          <span>💧 ${c.relative_humidity_2m}%</span>
+          <span>💨 ${Math.round(c.wind_speed_10m)} mph</span>
+        </div>`;
+    }catch(e){
+      document.getElementById(loc.elId).innerHTML = `<div class="error-msg">Weather unavailable — ${e.message}</div>`;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   VAIL SNOW REPORT  (vail.com + Open-Meteo forecast)
+   ═══════════════════════════════════════════ */
+async function fetchVailSnow(){
+  const el = document.getElementById('snow-content');
+  try{
+    // ── 1. Past snowfall from vail.com (official ski patrol data) ──
+    let vailData = null;
+    const vailUrl = 'https://www.vail.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx';
+    const proxyUrls = [
+      `https://corsproxy.io/?url=${encodeURIComponent(vailUrl)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(vailUrl)}`,
+    ];
+    for(const url of proxyUrls){
+      try{
+        const res = await fetch(url);
+        if(!res.ok) continue;
+        const html = await res.text();
+        const match = html.match(/FR\.snowReportData\s*=\s*(\{[\s\S]*?\});/);
+        if(match){ vailData = JSON.parse(match[1]); break; }
+      }catch{ continue; }
+    }
+
+    // ── 2. Forecast snowfall from Open-Meteo ──
+    const meteoUrl = 'https://api.open-meteo.com/v1/forecast'
+      + '?latitude=39.6403&longitude=-106.3742&hourly=snowfall'
+      + '&forecast_days=7&timezone=America%2FDenver';
+    const meteoRes = await fetch(meteoUrl);
+    const meteoData = await meteoRes.json();
+
+    // sum forecast snowfall (cm) for next 24h, 48h, 7d from current hour
+    const hours = meteoData.hourly.time;
+    const snowCm = meteoData.hourly.snowfall;
+    const now = new Date();
+    // find first hour >= now
+    let startIdx = 0;
+    for(let i = 0; i < hours.length; i++){
+      if(new Date(hours[i]) >= now){ startIdx = i; break; }
+    }
+    function sumHours(from, count){
+      let total = 0;
+      for(let i = from; i < Math.min(from + count, snowCm.length); i++){
+        total += (snowCm[i] || 0);
+      }
+      return total / 2.54; // cm → inches
+    }
+    const next24 = sumHours(startIdx, 24);
+    const next48 = sumHours(startIdx, 48);
+    const next7d = sumHours(startIdx, 168);
+
+    // ── 3. Build display ──
+    // past data from vail.com (falls back to "—" if scrape failed)
+    const past24  = vailData ? vailData.TwentyFourHourSnowfall.Inches : '—';
+    const past48  = vailData ? vailData.FortyEightHourSnowfall.Inches : '—';
+    const past7d  = vailData ? vailData.SevenDaySnowfall.Inches : '—';
+    const base    = vailData ? vailData.BaseDepth.Inches : '—';
+    const season  = vailData ? vailData.CurrentSeason.Inches : '—';
+    const updated = vailData ? vailData.LastUpdatedText : '';
+
+    function snowVal(v, unit){
+      const n = typeof v === 'number' ? v.toFixed(1) : v;
+      const hasSnow = (typeof v === 'number' ? v > 0.05 : (parseInt(v) > 0));
+      return `<div class="val${hasSnow ? ' has-snow' : ''}">${n}${unit || '"'}</div>`;
+    }
+
+    el.innerHTML = `
+      <div class="snow-grid">
+        <div>
+          <div class="snow-section-label">Past (actual)</div>
+          <div class="snow-stats">
+            <div class="snow-stat">${snowVal(past7d)}<div class="lbl">7 day</div></div>
+            <div class="snow-stat">${snowVal(past48)}<div class="lbl">48 hr</div></div>
+            <div class="snow-stat">${snowVal(past24)}<div class="lbl">24 hr</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="snow-section-label">Forecast</div>
+          <div class="snow-stats">
+            <div class="snow-stat">${snowVal(next24)}<div class="lbl">24 hr</div></div>
+            <div class="snow-stat">${snowVal(next48)}<div class="lbl">48 hr</div></div>
+            <div class="snow-stat">${snowVal(next7d)}<div class="lbl">7 day</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="snow-meta">
+        <span>Base depth: <strong>${base}"</strong></span>
+        <span>Season total: <strong>${season}"</strong></span>
+        ${updated ? `<span>Past data via vail.com &middot; ${updated}</span>` : '<span>Past data via vail.com</span>'}
+        <span>Forecast via Open-Meteo</span>
+      </div>`;
+  }catch(e){
+    el.innerHTML = `<div class="error-msg">Snow report unavailable — ${e.message}</div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   ART  (Art Institute of Chicago)
+   ═══════════════════════════════════════════ */
+async function fetchArt(){
+  const el = document.getElementById('art-content');
+  try{
+    // pick a random page from 1–200, grab 12 results, find one with an image
+    const page = Math.floor(Math.random()*200)+1;
+    const url = `https://api.artic.edu/api/v1/artworks?page=${page}&limit=12`
+      + `&fields=id,title,artist_display,image_id,date_display,medium_display`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const iiif = data.config.iiif_url;
+    const withImg = data.data.filter(a => a.image_id);
+    if(!withImg.length){ fetchArt(); return; }       // retry on miss
+    const art = withImg[Math.floor(Math.random()*withImg.length)];
+    const imgUrl = `${iiif}/${art.image_id}/full/600,/0/default.jpg`;
+
+    el.innerHTML = `
+      <div class="art-inner">
+        <div class="art-img-wrap">
+          <img src="${imgUrl}" alt="${art.title}" onload="this.classList.add('loaded')">
+        </div>
+        <div class="art-info">
+          <div class="art-title">${art.title}</div>
+          <div class="art-artist">${art.artist_display || 'Unknown artist'}${art.date_display ? ' · '+art.date_display : ''}</div>
+          ${art.medium_display ? `<div class="art-artist" style="margin-bottom:.6rem;font-size:.78rem">${art.medium_display}</div>` : ''}
+          <button class="art-btn" onclick="fetchArt()">&#8635; New artwork</button>
+        </div>
+      </div>`;
+  }catch(e){
+    el.innerHTML = `<div class="error-msg">Art unavailable — ${e.message}</div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   STOCKS  (Yahoo Finance — no API key needed)
+   ═══════════════════════════════════════════ */
+const ALL_PERIODS = ['1D','3D','5D','1M','YTD','1Y'];
+
+// store returns per symbol so we can compute deltas
+const storedReturns = {};
+
+function calcReturn(currentPrice, prevPrice){
+  if(prevPrice == null) return null;
+  return ((currentPrice - prevPrice) / prevPrice) * 100;
+}
+
+function returnCell(label, ret){
+  if(ret == null){
+    return `<div class="stock-cell"><div class="period">${label}</div><div class="ret flat">—</div></div>`;
+  }
+  const cls  = ret > 0.01 ? 'up' : ret < -0.01 ? 'down' : 'flat';
+  const sign = ret > 0 ? '+' : '';
+  return `<div class="stock-cell"><div class="period">${label}</div><div class="ret ${cls}">${sign}${ret.toFixed(2)}%</div></div>`;
+}
+
+async function fetchChart(symbol){
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1y&interval=1d`;
+  // try direct first, then CORS proxies as fallback
+  const urls = [
+    yahooUrl,
+    `https://corsproxy.io/?url=${encodeURIComponent(yahooUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+  ];
+  for(const url of urls){
+    try{
+      const res = await fetch(url);
+      if(!res.ok) continue;
+      const json = await res.json();
+      if(json.chart?.result?.[0]) return json.chart.result[0];
+    }catch{ continue; }
+  }
+  throw new Error('All data sources failed');
+}
+
+async function fetchStock(symbol, elId){
+  const el = document.getElementById(elId);
+  try{
+    const result = await fetchChart(symbol);
+    const timestamps = result.timestamp;
+    const rawCloses  = result.indicators.adjclose?.[0]?.adjclose
+                    || result.indicators.quote[0].close;
+    const displayPrice = result.meta.regularMarketPrice;
+
+    // filter out null closes, pair with timestamps
+    const data = [];
+    for(let i = 0; i < timestamps.length; i++){
+      if(rawCloses[i] != null) data.push({ts: timestamps[i], close: rawCloses[i]});
+    }
+    const n = data.length;
+    if(!n){ el.innerHTML = `<div class="error-msg">No price data returned</div>`; return; }
+
+    const price = data[n-1].close;
+
+    // compute returns for each period
+    const rets = {};
+    rets['1D'] = n > 1  ? calcReturn(price, data[n-1-1].close)  : null;
+    rets['3D'] = n > 3  ? calcReturn(price, data[n-1-3].close)  : null;
+    rets['5D'] = n > 5  ? calcReturn(price, data[n-1-5].close)  : null;
+    rets['1M'] = n > 21 ? calcReturn(price, data[n-1-21].close) : null;
+
+    // YTD: last close of previous year
+    const prevYear = new Date().getFullYear() - 1;
+    let ytdClose = null;
+    for(let i = n - 1; i >= 0; i--){
+      if(new Date(data[i].ts * 1000).getFullYear() === prevYear){ ytdClose = data[i].close; break; }
+    }
+    rets['YTD'] = calcReturn(price, ytdClose);
+
+    // 1Y: first data point in the range
+    rets['1Y'] = calcReturn(price, data[0].close);
+
+    // store for delta
+    storedReturns[symbol] = rets;
+
+    // build return cells
+    let cells = '';
+    for(const label of ALL_PERIODS) cells += returnCell(label, rets[label]);
+
+    // mini sparkline from last 20 trading days — diverging bar chart
+    const recent = data.slice(-20);
+    const closes = recent.map(d => d.close);
+    const dailyRets = closes.map((c,i) => i === 0 ? 0 : ((c - closes[i-1]) / closes[i-1]) * 100);
+    const maxAbs = Math.max(...dailyRets.map(r => Math.abs(r)), 0.1);
+    let bars = '';
+    for(let i = 0; i < closes.length; i++){
+      const pct = dailyRets[i];
+      const cls = pct > 0.01 ? 'up' : pct < -0.01 ? 'down' : 'flat';
+      const sign = pct > 0 ? '+' : '';
+      const pctLabel = i === 0 ? '—' : `${sign}${pct.toFixed(1)}`;
+      const h = (Math.abs(pct) / maxAbs) * 20;
+      let barStyle;
+      if(pct >= 0){
+        barStyle = `bottom:50%;height:${h}px;background:var(--green);border-radius:2px 2px 0 0;`;
+      } else {
+        barStyle = `top:50%;height:${h}px;background:var(--red);border-radius:0 0 2px 2px;`;
+      }
+      const daysBack = closes.length - 1 - i;
+      const dateLabel = daysBack === 0 ? 'T' : `T-${daysBack}`;
+      bars += `<div class="spark-col"><div class="spark-pct ${i===0?'flat':cls}">${pctLabel}</div><div class="spark-area"><div class="bar" style="${barStyle}"></div></div><div class="spark-date">${dateLabel}</div></div>`;
+    }
+
+    el.innerHTML = `
+      <div class="stock-price">$${(displayPrice || price).toFixed(2)}</div>
+      <div class="stock-grid">${cells}</div>
+      <div style="margin-top:.7rem;font-size:.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em">Daily change — last 20 trading days</div>
+      <div class="spark">${bars}</div>`;
+  }catch(e){
+    el.innerHTML = `<div class="error-msg">Stock data unavailable — ${e.message}</div>`;
+  }
+}
+
+function renderDelta(){
+  const el = document.getElementById('delta-content');
+  const spy = storedReturns['SPY'];
+  const igv = storedReturns['IGV'];
+  if(!spy || !igv){
+    el.innerHTML = `<div class="error-msg">Waiting for stock data...</div>`;
+    return;
+  }
+  let cells = '';
+  for(const label of ALL_PERIODS){
+    const s = spy[label], g = igv[label];
+    const delta = (s != null && g != null) ? g - s : null;
+    cells += returnCell(label, delta);
+  }
+  el.innerHTML = `
+    <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:.6rem">Positive = IGV outperforming SPY</div>
+    <div class="stock-grid">${cells}</div>`;
+}
+
+async function fetchStocks(){
+  await fetchStock('SPY','spy-content');
+  await fetchStock('IGV','igv-content');
+  renderDelta();
+}
+
+/* ═══════════════════════════════════════════
+   NEWS  (via rss2json.com — ESPN NBA + BBC Top Stories)
+   ═══════════════════════════════════════════ */
+const NEWS_FEEDS = [
+  {
+    label: 'Top Stories',
+    elId:  'news-general-content',
+    rss:   'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml',
+    count: 6,
+  },
+  {
+    label: 'NBA',
+    elId:  'news-nba-content',
+    rss:   'https://www.espn.com/espn/rss/nba/news',
+    count: 6,
+  },
+];
+
+function timeAgo(dateStr){
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if(mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if(hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+async function fetchNews(){
+  for(const feed of NEWS_FEEDS){
+    const el = document.getElementById(feed.elId);
+    try{
+      const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.rss)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if(data.status !== 'ok' || !data.items?.length){
+        el.innerHTML = `<div class="error-msg">No headlines available</div>`;
+        continue;
+      }
+      const items = data.items.slice(0, feed.count);
+      el.innerHTML = `<ul class="news-list">${items.map(item => {
+        const source = item.author || new URL(item.link).hostname.replace('www.','');
+        return `<li class="news-item"><a href="${item.link}" target="_blank" rel="noopener">
+          ${item.title}
+          <div class="news-source">${source}<span class="news-time">${timeAgo(item.pubDate)}</span></div>
+        </a></li>`;
+      }).join('')}</ul>`;
+    }catch(e){
+      el.innerHTML = `<div class="error-msg">News unavailable — ${e.message}</div>`;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   INIT & AUTO-REFRESH
+   ═══════════════════════════════════════════ */
+function updateTimestamp(){
+  document.getElementById('last-updated').textContent =
+    new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+}
+
+const SNOW_INTERVAL = 30 * 60_000;   // 30 min
+
+async function init(){
+  updateTimestamp();
+  fetchWeather();
+  fetchVailSnow();
+  fetchArt();
+  fetchStocks();
+  fetchNews();
+}
+
+init();
+setInterval(()=>{ fetchWeather();  updateTimestamp(); }, WEATHER_INTERVAL);
+setInterval(()=>{ fetchVailSnow(); updateTimestamp(); }, SNOW_INTERVAL);
+setInterval(()=>{ fetchArt();      updateTimestamp(); }, ART_INTERVAL);
+setInterval(()=>{ fetchStocks();   updateTimestamp(); }, STOCK_INTERVAL);
+setInterval(()=>{ fetchNews();     updateTimestamp(); }, NEWS_INTERVAL);
+
+/* ═══════════════════════════════════════════
+   THEME SWITCHER  (persists via localStorage)
+   ═══════════════════════════════════════════ */
+(function initThemes(){
+  const saved = localStorage.getItem('dashboard-theme') || 'default';
+  document.documentElement.setAttribute('data-theme', saved);
+
+  document.getElementById('theme-bar').addEventListener('click', e => {
+    const btn = e.target.closest('.theme-btn');
+    if(!btn) return;
+    const theme = btn.dataset.theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('dashboard-theme', theme);
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+
+  // mark the saved theme button as active on load
+  const activeBtn = document.querySelector(`.theme-btn[data-theme="${saved}"]`);
+  if(activeBtn){
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    activeBtn.classList.add('active');
+  }
+})();
+</script>
+</body>
+</html>
