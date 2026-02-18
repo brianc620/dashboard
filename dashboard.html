@@ -582,19 +582,22 @@ async function fetchStock(symbol, elId){
     const n = data.length;
     if(!n){ el.innerHTML = `<div class="error-msg">No price data returned</div>`; return; }
 
-    const price = data[n-1].close;
+    // use live market price; detect if Yahoo included today's in-progress bar
+    const price = displayPrice || data[n-1].close;
+    const lastBarIsToday = new Date(data[n-1].ts * 1000).toDateString() === new Date().toDateString();
+    const hi = lastBarIsToday ? n - 2 : n - 1; // last *completed* trading day
 
-    // compute returns for each period
+    // compute returns for each period (live price vs completed daily closes)
     const rets = {};
-    rets['1D'] = n > 1  ? calcReturn(price, data[n-1-1].close)  : null;
-    rets['3D'] = n > 3  ? calcReturn(price, data[n-1-3].close)  : null;
-    rets['5D'] = n > 5  ? calcReturn(price, data[n-1-5].close)  : null;
-    rets['1M'] = n > 21 ? calcReturn(price, data[n-1-21].close) : null;
+    rets['1D'] = hi >= 0   ? calcReturn(price, data[hi].close)    : null;
+    rets['3D'] = hi >= 2   ? calcReturn(price, data[hi-2].close)  : null;
+    rets['5D'] = hi >= 4   ? calcReturn(price, data[hi-4].close)  : null;
+    rets['1M'] = hi >= 20  ? calcReturn(price, data[hi-20].close) : null;
 
     // YTD: last close of previous year
     const prevYear = new Date().getFullYear() - 1;
     let ytdClose = null;
-    for(let i = n - 1; i >= 0; i--){
+    for(let i = hi; i >= 0; i--){
       if(new Date(data[i].ts * 1000).getFullYear() === prevYear){ ytdClose = data[i].close; break; }
     }
     rets['YTD'] = calcReturn(price, ytdClose);
@@ -609,12 +612,15 @@ async function fetchStock(symbol, elId){
     let cells = '';
     for(const label of ALL_PERIODS) cells += returnCell(label, rets[label]);
 
-    // mini sparkline from last 20 trading days — diverging bar chart
-    const recent = data.slice(-20);
+    // mini sparkline — prepend live "T" only on trading days, otherwise just completed days
+    const histCount = lastBarIsToday ? 19 : 20;
+    const recent = data.slice(Math.max(0, hi + 1 - histCount), hi + 1);
     const closes = recent.map(d => d.close);
     const dailyRets = closes.map((c,i) => i === 0 ? 0 : ((c - closes[i-1]) / closes[i-1]) * 100);
-    // reverse so most recent day is on the left
-    const dispRets = dailyRets.slice(1).reverse();
+    const histRets = dailyRets.slice(1).reverse();
+    const dispRets = lastBarIsToday
+      ? [((price - data[hi].close) / data[hi].close) * 100, ...histRets]
+      : histRets;
     const maxAbs = Math.max(...dispRets.map(r => Math.abs(r)), 0.1);
     let bars = '';
     for(let i = 0; i < dispRets.length; i++){
